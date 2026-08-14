@@ -1,0 +1,23 @@
+{% extends "monitoring/base.html" %}
+
+{% block content %}
+
+<h2 style="margin-bottom: 20px;">Delete Service</h2>
+
+<div class="form-box">
+    <p style="margin-bottom: 25px; font-size: 1.05rem;">
+        Are you sure you want to delete
+        <strong>{{ service.name }}</strong>?<br>
+        <span style="color:#64748b; font-size:0.9rem;">This action cannot be undone.</span>
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
