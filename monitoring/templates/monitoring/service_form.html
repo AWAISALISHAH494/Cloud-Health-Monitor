@@ -1,0 +1,63 @@
+{% extends "monitoring/base.html" %}
+
+{% block content %}
+
+<h2 style="margin-bottom: 20px;">
+    {% if service %}Edit Service{% else %}Add Service{% endif %}
+</h2>
+
+<div class="form-box">
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="name">Service Name *</label>
+            <input type="text" id="name" name="name"
+                   value="{{ service.name|default:'' }}" required
+                   placeholder="e.g. Payment Gateway">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description"
+                      placeholder="Short description">{{ service.description|default:'' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="endpoint">Endpoint URL</label>
+            <input type="url" id="endpoint" name="endpoint"
+                   value="{{ service.endpoint|default:'' }}"
+                   placeholder="https://api.example.com/health">
+        </div>
+
+        <div class="form-group">
+            <label for="status">Status *</label>
+            <select id="status" name="status" required>
+                <option value="HEALTHY" {% if not service or service.status == "HEALTHY" %}selected{% endif %}>Healthy</option>
+                <option value="DEGRADED" {% if service.status == "DEGRADED" %}selected{% endif %}>Degraded</option>
+                <option value="DOWN" {% if service.status == "DOWN" %}selected{% endif %}>Down</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="response_time_ms">Response Time (ms)</label>
+            <input type="number" step="0.01" id="response_time_ms" name="response_time_ms"
+                   value="{{ service.response_time_ms|default:0 }}" min="0">
+        </div>
+
+        <div class="form-group">
+            <label for="uptime_percentage">Uptime %</label>
+            <input type="number" step="0.01" id="uptime_percentage" name="uptime_percentage"
+                   value="{{ service.uptime_percentage|default:100 }}" min="0" max="100">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                {% if service %}Update Service{% else %}Save Service{% endif %}
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
