@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "python:3.11-slim"
+          python-version: "python:3.11"
 
       - name: Install dependencies
         run: |
