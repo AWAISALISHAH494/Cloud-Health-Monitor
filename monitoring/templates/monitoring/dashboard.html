@@ -1,0 +1,81 @@
+{% extends "monitoring/base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h2>Infrastructure Overview</h2>
+        <p>Monitor your application services</p>
+    </div>
+    <a href="{% url 'service_create' %}" class="btn btn-primary">+ Add Service</a>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+    <div class="stat-card">
+        <div class="label">Total Services</div>
+        <div class="value">{{ total_services }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Healthy</div>
+        <div class="value text-green">{{ healthy_services }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Degraded</div>
+        <div class="value text-orange">{{ degraded_services }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Down</div>
+        <div class="value text-red">{{ down_services }}</div>
+    </div>
+</div>
+
+<!-- Services Table -->
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Endpoint</th>
+                <th>Status</th>
+                <th>Response</th>
+                <th>Uptime</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for service in services %}
+            <tr>
+                <td>
+                    <strong>{{ service.name }}</strong><br>
+                    <small style="color:#64748b;">{{ service.description }}</small>
+                </td>
+                <td>{{ service.endpoint|default:"—" }}</td>
+                <td>
+                    {% if service.status == "HEALTHY" %}
+                        <span class="badge badge-healthy">● Healthy</span>
+                    {% elif service.status == "DEGRADED" %}
+                        <span class="badge badge-degraded">● Degraded</span>
+                    {% else %}
+                        <span class="badge badge-down">● Down</span>
+                    {% endif %}
+                </td>
+                <td>{{ service.response_time_ms }} ms</td>
+                <td>{{ service.uptime_percentage }}%</td>
+                <td>
+                    <a href="{% url 'service_edit' service.id %}" class="btn btn-secondary btn-sm">Edit</a>
+                    <a href="{% url 'service_delete' service.id %}" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align:center; padding:40px; color:#64748b;">
+                    No services found. Click “+ Add Service” to create one.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
