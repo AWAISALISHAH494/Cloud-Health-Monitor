@@ -1,0 +1,7 @@
+services:
+  web:
+    image: 045555583673.dkr.ecr.us-east-1.amazonaws.com/cloud-service-monitor:latest
+    container_name: cloud-service-monitor
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
