@@ -32,3 +32,35 @@ class ServiceModelTest(TestCase):
         self.assertEqual(service.uptime_percentage, 100)
         self.assertEqual(service.description, "")
         self.assertEqual(service.endpoint, "")
+
+
+class DashboardViewTest(TestCase):
+    """Test the dashboard view"""
+
+    def setUp(self):
+        self.client = Client()
+        Service.objects.create(name="Service A", status="HEALTHY")
+        Service.objects.create(name="Service B", status="DEGRADED")
+        Service.objects.create(name="Service C", status="DOWN")
+        Service.objects.create(name="Service D", status="HEALTHY")
+
+    def test_dashboard_status_code(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dashboard_template(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertTemplateUsed(response, "monitoring/dashboard.html")
+
+    def test_dashboard_stats(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.context["total_services"], 4)
+        self.assertEqual(response.context["healthy_services"], 2)
+        self.assertEqual(response.context["degraded_services"], 1)
+        self.assertEqual(response.context["down_services"], 1)
+
+    def test_dashboard_contains_services(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "Service A")
+        self.assertContains(response, "Service B")
+        self.assertContains(response, "Service C")
