@@ -103,3 +103,45 @@ class ServiceCreateViewTest(TestCase):
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Service.objects.count(), 1)
+
+class ServiceEditViewTest(TestCase):
+    """Test Edit Service view"""
+
+    def setUp(self):
+        self.client = Client()
+        self.service = Service.objects.create(
+            name="Old Name",
+            status="HEALTHY",
+            response_time_ms=100,
+            uptime_percentage=98,
+        )
+        self.url = reverse("service_edit", args=[self.service.id])
+
+    def test_edit_page_loads(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "monitoring/service_form.html")
+        self.assertContains(response, "Old Name")
+
+    def test_edit_service_success(self):
+        data = {
+            "name": "Updated Name",
+            "description": "Updated description",
+            "endpoint": "https://new.endpoint.com",
+            "status": "DEGRADED",
+            "response_time_ms": 250,
+            "uptime_percentage": 95.5,
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+
+        self.service.refresh_from_db()
+        self.assertEqual(self.service.name, "Updated Name")
+        self.assertEqual(self.service.status, "DEGRADED")
+        self.assertEqual(self.service.response_time_ms, 250)
+        self.assertEqual(self.service.uptime_percentage, 95.5)
+
+    def test_edit_nonexistent_service(self):
+        url = reverse("service_edit", args=[9999])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
