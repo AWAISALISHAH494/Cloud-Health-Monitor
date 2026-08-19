@@ -145,3 +145,27 @@ class ServiceEditViewTest(TestCase):
         url = reverse("service_edit", args=[9999])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
+
+class ServiceDeleteViewTest(TestCase):
+    """Test Delete Service view"""
+
+    def setUp(self):
+        self.client = Client()
+        self.service = Service.objects.create(name="To Delete", status="DOWN")
+        self.url = reverse("service_delete", args=[self.service.id])
+
+    def test_delete_confirmation_page(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "monitoring/service_confirm_delete.html")
+        self.assertContains(response, "To Delete")
+
+    def test_delete_service_success(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Service.objects.count(), 0)
+
+    def test_delete_nonexistent_service(self):
+        url = reverse("service_delete", args=[9999])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
