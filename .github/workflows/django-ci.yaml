@@ -193,7 +193,7 @@ jobs:
       - name: Verify deployment health
         if: github.event_name == 'push'
         run: |
-          STATUS=$(jq -r '.Payload' lambda-response.json | jq -r '.statusCode')
+          STATUS=$(jq -r '.statusCode' lambda-response.json)
 
           echo "Health check status: $STATUS"
 
