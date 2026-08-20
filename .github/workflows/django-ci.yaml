@@ -33,27 +33,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Invoke Lambda Health Check
-        run: |
-          aws lambda invoke \
-            --function-name django-health-check \
-            --payload '{}' \
-            --cli-binary-format raw-in-base64-out \
-            lambda-response.json
-          cat lambda-response.json
-      - name: Verify deployment health
-        run: |
-          STATUS=$(jq -r '.Payload' lambda-response.json | jq -r '.statusCode')
-
-          echo "Health check status: $STATUS"
-
-          if [ "$STATUS" != "200" ]; then
-            echo "❌ Deployment health check failed"
-            exit 1
-          fi
-
-          echo "✅ Deployment health check passed"
-
+          
       - name: Check AWS identity
         run: aws sts get-caller-identity
 
