@@ -1,3 +1,97 @@
+# name: Cloud Service Monitor CI
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+    
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+      
+#       - name: Run tests
+#         run: |
+#           python manage.py test monitoring
+
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ secrets.AWS_REGION }}
+#       - name: Invoke Lambda Health Check
+#         run: |
+#           aws lambda invoke \
+#             --function-name django-health-check \
+#             --payload '{}' \
+#             --cli-binary-format raw-in-base64-out \
+#             lambda-response.json
+#           cat lambda-response.json
+#       - name: Verify deployment health
+#         run: |
+#           STATUS=$(jq -r '.Payload' lambda-response.json | jq -r '.statusCode')
+
+#           echo "Health check status: $STATUS"
+
+#           if [ "$STATUS" != "200" ]; then
+#             echo "❌ Deployment health check failed"
+#             exit 1
+#           fi
+
+#           echo "✅ Deployment health check passed"
+
+#       - name: Check AWS identity
+#         run: aws sts get-caller-identity
+
+#       - name: Login to ECR
+#         uses: aws-actions/amazon-ecr-login@v2
+
+#       - name: Build and push Docker image
+#         run: |
+#           IMAGE_NAME=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cloud-service-monitor:latest
+#           docker build -t ${IMAGE_NAME} .
+#           docker push ${IMAGE_NAME}
+
+#       - name: Copy Docker Compose file to EC2
+#         uses: appleboy/scp-action@v0.1.7
+#         with:
+#           host: ${{ secrets.EC2_HOST }}
+#           username: ${{ secrets.EC2_USER }}
+#           key: ${{ secrets.EC2_SSH_KEY }}
+#           source: "compose.yaml"
+#           target: "/home/ubuntu/cloud-service-monitor/"
+        
+#       - name: Deploy on EC2
+#         uses: appleboy/ssh-action@v1.2.0
+#         with:
+#           host: ${{ secrets.EC2_HOST }}
+#           username: ${{ secrets.EC2_USER }}
+#           key: ${{ secrets.EC2_SSH_KEY }}
+#           script: |
+#             cd /home/ubuntu/cloud-service-monitor
+
+#             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+#             docker login --username AWS --password-stdin \
+#             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+#             docker compose pull
+#             docker compose up -d
+#             docker compose exec web python manage.py migrate
+
 name: Cloud Service Monitor CI
 
 on:
@@ -9,10 +103,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -22,31 +117,36 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Run tests
         run: |
           python manage.py test monitoring
 
       - name: Configure AWS credentials
+        if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Check AWS identity
+        if: github.event_name == 'push'
         run: aws sts get-caller-identity
 
       - name: Login to ECR
+        if: github.event_name == 'push'
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker image
+        if: github.event_name == 'push'
         run: |
           IMAGE_NAME=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cloud-service-monitor:latest
           docker build -t ${IMAGE_NAME} .
           docker push ${IMAGE_NAME}
 
       - name: Copy Docker Compose file to EC2
+        if: github.event_name == 'push'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -54,8 +154,9 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "compose.yaml"
           target: "/home/ubuntu/cloud-service-monitor/"
-        
+
       - name: Deploy on EC2
+        if: github.event_name == 'push'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -71,3 +172,34 @@ jobs:
             docker compose pull
             docker compose up -d
             docker compose exec web python manage.py migrate
+
+      - name: Wait for application startup
+        if: github.event_name == 'push'
+        run: |
+          echo "Waiting for Django application to start..."
+          sleep 10
+
+      - name: Invoke Lambda Health Check
+        if: github.event_name == 'push'
+        run: |
+          aws lambda invoke \
+            --function-name django-health-check \
+            --payload '{}' \
+            --cli-binary-format raw-in-base64-out \
+            lambda-response.json
+
+          cat lambda-response.json
+
+      - name: Verify deployment health
+        if: github.event_name == 'push'
+        run: |
+          STATUS=$(jq -r '.Payload' lambda-response.json | jq -r '.statusCode')
+
+          echo "Health check status: $STATUS"
+
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Deployment health check failed"
+            exit 1
+          fi
+
+          echo "✅ Deployment health check passed"
