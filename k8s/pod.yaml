@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: cloud-service-monitor
+  labels:
+    app: cloud-service-monitor
+spec:
+  containers:
+    - name: cloud-service-monitor
+      image: 045555583673.dkr.ecr.us-east-1.amazonaws.com/cloud-service-monitor:latest
+      ports:
+        - containerPort: 8000
