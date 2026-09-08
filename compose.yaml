@@ -10,6 +10,12 @@ services:
       volumes:
         - postgres_data:/var/lib/postgresql/data
       restart: unless-stopped
+
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres -d cloud_monitor"]
+        interval: 5s
+        timeout: 5s
+        retries: 10
   web:
     image: 045555583673.dkr.ecr.us-east-1.amazonaws.com/cloud-service-monitor:latest
     container_name: cloud-service-monitor
@@ -22,7 +28,8 @@ services:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
