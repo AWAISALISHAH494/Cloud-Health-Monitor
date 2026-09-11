@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: cloud-service-monitor-deployment
+  labels:
+    app: cloud-service-monitor
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: cloud-service-monitor
+
+  template:
+    metadata:
+      name: cloud-service-monitor
+      labels:
+        app: cloud-service-monitor
+
+    spec:
+      imagePullSecrets:
+        - name: ecr-secret
+
+      containers:
+        - name: cloud-service-monitor
+
+          image: 045555583673.dkr.ecr.us-east-1.amazonaws.com/cloud-service-monitor:latest
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: POSTGRES_HOST
+              value: postgres-service
+
+            - name: POSTGRES_PORT
+              value: "5432"
